@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>云栖图床</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 基础样式重置 */
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
+        :root {
+            /* 主色调 - 柔和浅蓝色、浅灰、米白 */
+            --color-primary: #7eb6ff;
+            --color-primary-light: #e8f2ff;
+            --color-primary-dark: #5a9cf0;
+            --color-bg: #f9fafc;
+            --color-surface: #ffffff;
+            --color-surface-light: rgba(255, 255, 255, 0.8);
+            --color-text: #374151;
+            --color-text-light: #6b7280;
+            --color-text-lighter: #9ca3af;
+            --color-border: #e5e7eb;
+            --color-border-light: #f3f4f6;
+            --color-success: #10b981;
+            --color-error: #ef4444;
+            --color-warning: #f59e0b;
+            
+            /* 阴影 */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+            --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04);
+            
+            /* 圆角 */
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --radius-full: 9999px;
+            
+            /* 过渡 */
+            --transition-fast: 150ms ease;
+            --transition-normal: 250ms ease;
+            --transition-slow: 350ms ease;
+        }
+        
+        /* 基础样式 */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+        
+        /* 淡入动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .page-container {
+            opacity: 0;
+            animation: fadeIn var(--transition-slow) forwards;
+            animation-delay: 100ms;
+        }
+        
+        /* 工具类 */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        /* 头部样式 */
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background-color: var(--color-surface-light);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--color-border-light);
+            transition: all var(--transition-normal);
+        }
+        
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+            color: var(--color-text);
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+            color: white;
+            transition: transform var(--transition-normal);
+        }
+        
+        .logo:hover .logo-icon {
+            transform: scale(1.05);
+        }
+        
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+        
+        /* 用户菜单 */
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .auth-btn {
+            padding: 0.5rem 1.25rem;
+            border-radius: var(--radius-full);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: 1px solid var(--color-border);
+            background-color: transparent;
+            color: var(--color-text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .auth-btn:hover {
+            background-color: var(--color-primary-light);
+            border-color: var(--color-primary);
+            color: var(--color-primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--color-primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-primary-dark);
+        }
+        
+        .logout-btn {
+            color: var(--color-text-light);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            padding: 0.5rem;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+        
+        .logout-btn:hover {
+            color: var(--color-error);
+            background-color: rgba(239, 68, 68, 0.05);
+        }
+        
+        /* 主容器 */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+        
+        /* 上传区域 */
+        .upload-section {
+            margin-bottom: 3rem;
+        }
+        
+        .upload-card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-xl);
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all var(--transition-normal);
+            border: 1px dashed var(--color-border);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-card:hover, .upload-card.dragover {
+            border-color: var(--color-primary);
+            background-color: var(--color-primary-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .upload-card.dragover {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { border-color: var(--color-primary); }
+            50% { border-color: var(--color-primary-dark); }
+            100% { border-color: var(--color-primary); }
+        }
+        
+        .upload-icon {
+            font-size: 3.5rem;
+            color: var(--color-primary);
+            margin-bottom: 1.5rem;
+            transition: transform var(--transition-normal);
+        }
+        
+        .upload-card:hover .upload-icon {
+            transform: scale(1.1);
+        }
+        
+        .upload-text {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--color-text);
+        }
+        
+        .upload-hint {
+            color: var(--color-text-light);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .upload-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+            color: white;
+            border: none;
+            border-radius: var(--radius-full);
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            box-shadow: 0 4px 12px rgba(126, 182, 255, 0.3);
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(126, 182, 255, 0.4);
+        }
+        
+        .upload-btn:active {
+            transform: translateY(0);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
+            transition: width 0.3s ease;
+            border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+        }
+        
+        /* 图片库区域 */
+        .gallery-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .gallery-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--color-text);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .gallery-stats {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--color-text-light);
+            font-size: 0.9rem;
+        }
+        
+        .stats-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        @media (max-width: 640px) {
+            .gallery-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (min-width: 1025px) and (max-width: 1400px) {
+            .gallery-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (min-width: 1401px) {
+            .gallery-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        /* 图片卡片 */
+        .image-card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: all var(--transition-normal);
+            border: 1px solid var(--color-border-light);
+            position: relative;
+            opacity: 0;
+            animation: fadeIn var(--transition-slow) forwards;
+        }
+        
+        .image-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--color-primary-light);
+        }
+        
+        .image-wrapper {
+            position: relative;
+            padding-top: 60%;
+            overflow: hidden;
+            background-color: var(--color-bg);
+        }
+        
+        .image-wrapper img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        
+        .image-card:hover .image-wrapper img {
+            transform: scale(1.05);
+        }
+        
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.3));
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .image-card:hover .image-overlay {
+            opacity: 1;
+        }
+        
+        .overlay-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text);
+            transition: all var(--transition-fast);
+            transform: translateY(10px);
+            opacity: 0;
+        }
+        
+        .image-card:hover .overlay-btn {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .overlay-btn:nth-child(1) { transition-delay: 0.05s; }
+        .overlay-btn:nth-child(2) { transition-delay: 0.1s; }
+        .overlay-btn:nth-child(3) { transition-delay: 0.15s; }
+        
+        .overlay-btn:hover {
+            background-color: white;
+            transform: scale(1.1);
+        }
+        
+        .overlay-btn.preview:hover {
+            color: var(--color-primary-dark);
+        }
+        
+        .overlay-btn.copy:hover {
+            color: var(--color-success);
+        }
+        
+        .overlay-btn.delete:hover {
+            color: var(--color-error);
+        }
+        
+        .image-info {
+            padding: 1.25rem;
+        }
+        
+        .image-name {
+            font-weight: 500;
+            color: var(--color-text);
+            margin-bottom: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .image-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--color-text-light);
+            margin-bottom: 1rem;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        
+        .link-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .link-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            color: var(--color-text-light);
+            text-align: center;
+        }
+        
+        .link-btn:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary-dark);
+            background-color: var(--color-primary-light);
+        }
+        
+        .link-btn.copied {
+            background-color: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: var(--color-success);
+        }
+        
+        .admin-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--color-border-light);
+        }
+        
+        .admin-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+        }
+        
+        .btn-edit {
+            background-color: rgba(126, 182, 255, 0.1);
+            color: var(--color-primary-dark);
+        }
+        
+        .btn-edit:hover {
+            background-color: rgba(126, 182, 255, 0.2);
+        }
+        
+        .btn-delete {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--color-error);
+        }
+        
+        .btn-delete:hover {
+            background-color: rgba(239, 68, 68, 0.2);
+        }
+        
+        /* 空状态 */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--color-text-light);
+        }
+        
+        .empty-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.3;
+        }
+        
+        .empty-text {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .empty-hint {
+            font-size: 0.9rem;
+        }
+        
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 3rem;
+            flex-wrap: wrap;
+        }
+        
+        .page-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--color-border);
+            background-color: var(--color-surface);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            color: var(--color-text);
+            font-size: 0.9rem;
+            min-width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .page-btn:hover:not(:disabled) {
+            border-color: var(--color-primary);
+            color: var(--color-primary-dark);
+            background-color: var(--color-primary-light);
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .page-btn.active {
+            background-color: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+        
+        .page-info {
+            color: var(--color-text-light);
+            font-size: 0.9rem;
+            margin: 0 1rem;
+        }
+        
+        /* 模态框 - 重新设计 */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-normal);
+            backdrop-filter: blur(4px);
+            padding: 1rem;
+        }
+        
+        .modal-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-container {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-xl);
+            width: 100%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(20px) scale(0.95);
+            transition: transform var(--transition-normal);
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+        
+        .modal-backdrop.active .modal-container {
+            transform: translateY(0) scale(1);
+        }
+        
+        .modal-header {
+            padding: 1.5rem 1.5rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--color-text-light);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+        
+        .modal-close:hover {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--color-text);
+            font-weight: 500;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            transition: all var(--transition-fast);
+            background-color: var(--color-surface);
+            color: var(--color-text);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(126, 182, 255, 0.1);
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .btn-primary, .btn-secondary {
+            flex: 1;
+            padding: 0.875rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            border: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(126, 182, 255, 0.3);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--color-border-light);
+        }
+        
+        /* 预览模态框 */
+        .preview-modal .modal-container {
+            max-width: 90vw;
+            max-height: 90vh;
+            background-color: transparent;
+            box-shadow: none;
+        }
+        
+        .preview-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        
+        .preview-image {
+            max-width: 85vw;
+            max-height: 70vh;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            object-fit: contain;
+        }
+        
+        /* Toast 提示 - 蓝白风格 */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: var(--color-surface);
+            color: var(--color-text);
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-lg);
+            font-size: 0.9rem;
+            z-index: 10000;
+            opacity: 0;
+            transition: all var(--transition-normal);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            max-width: 90vw;
+            width: auto;
+            border: 1px solid var(--color-border);
+            border-left: 4px solid var(--color-primary);
+        }
+        
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        
+        .toast i {
+            font-size: 1.1rem;
+        }
+        
+        .toast.success {
+            border-left-color: var(--color-success);
+        }
+        
+        .toast.success i {
+            color: var(--color-success);
+        }
+        
+        .toast.error {
+            border-left-color: var(--color-error);
+        }
+        
+        .toast.error i {
+            color: var(--color-error);
+        }
+        
+        /* 移动端上传按钮 */
+        .mobile-upload-btn {
+            display: none;
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+            color: white;
+            border: none;
+            cursor: pointer;
+            z-index: 100;
+            transition: all var(--transition-normal);
+            box-shadow: 0 4px 12px rgba(126, 182, 255, 0.4);
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .mobile-upload-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        @media (max-width: 640px) {
+            .mobile-upload-btn {
+                display: flex;
+            }
+            
+            .header-container, .main-container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            .upload-card {
+                padding: 2rem 1rem;
+            }
+            
+            .upload-text {
+                font-size: 1.1rem;
+            }
+            
+            .link-buttons {
+                flex-direction: column;
+            }
+            
+            .admin-actions {
+                flex-direction: column;
+            }
+            
+            .pagination {
+                gap: 0.25rem;
+            }
+            
+            .page-btn {
+                padding: 0.5rem 0.75rem;
+                min-width: 36px;
+            }
+        }
+        
+        /* 加载动画 */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 页面加载动画 */
+        .page-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            transition: opacity var(--transition-normal) ease, visibility var(--transition-normal) ease;
+        }
+        
+        .page-loader.fade-out {
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        .loader-content {
+            text-align: center;
+        }
+        
+        .loader-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(126, 182, 255, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--color-primary);
+            margin: 0 auto 1.5rem;
+            animation: spin 1s linear infinite;
+        }
+        
+        .loader-text {
+            color: var(--color-text-light);
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页面加载动画 -->
+    <div class="page-loader" id="pageLoader">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <p class="loader-text">正在加载...</p>
+        </div>
+    </div>
+    
+    <!-- 主应用容器 -->
+    <div id="app" v-cloak>
+        <!-- 头部 -->
+        <header class="app-header">
+            <div class="header-container">
+                <a href="#" class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <span class="logo-text">云栖图床</span>
+                </a>
+                
+                <div class="user-menu">
+                    <div v-if="!isLoggedIn">
+                        <button class="auth-btn" @click="openLoginModal">
+                            <i class="fas fa-lock"></i>
+                            <span>管理登录</span>
+                        </button>
+                    </div>
+                    <div v-else class="user-info">
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <span>管理员</span>
+                        <button class="logout-btn" @click="logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span class="sr-only">退出</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- 主要内容 -->
+        <main class="main-container page-container">
+            <!-- 上传区域 -->
+            <section v-if="isLoggedIn" class="upload-section">
+                <div class="upload-card" 
+                     :class="{ dragover: isDragging }"
+                     @click="selectFile"
+                     @drop.prevent="handleDrop"
+                     @dragover.prevent="isDragging = true"
+                     @dragleave.prevent="isDragging = false">
+                    <input type="file" ref="fileInput" class="file-input" multiple accept="image/*" @change="handleFileSelect">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <h2 class="upload-text">拖放或点击上传图片</h2>
+                    <p class="upload-hint">支持 JPG、PNG、GIF、WEBP 格式，单张最大 10MB</p>
+                    <button class="upload-btn">
+                        <i class="fas fa-plus"></i>
+                        选择文件
+                    </button>
+                    <div v-if="uploadProgress > 0" class="upload-progress" :style="{ width: uploadProgress + '%' }"></div>
+                </div>
+            </section>
+            
+            <!-- 未登录提示 -->
+            <section v-else class="upload-section">
+                <div class="upload-card">
+                    <i class="fas fa-lock upload-icon"></i>
+                    <h2 class="upload-text">请登录后上传图片</h2>
+                    <p class="upload-hint">当前仅可查看已上传的图片列表</p>
+                    <button class="upload-btn" @click="openLoginModal">
+                        <i class="fas fa-sign-in-alt"></i>
+                        登录管理
+                    </button>
+                </div>
+            </section>
+            
+            <!-- 图片库 -->
+            <section class="gallery-section">
+                <div class="gallery-header">
+                    <h2 class="gallery-title">
+                        <i class="fas fa-images"></i>
+                        图片库
+                    </h2>
+                    <div class="gallery-stats">
+                        <div class="stats-item">
+                            <i class="fas fa-image"></i>
+                            <span>{{ images.length }} 张图片</span>
+                        </div>
+                        <div v-if="totalPages > 1" class="stats-item">
+                            <i class="fas fa-file-alt"></i>
+                            <span>第 {{ currentPage }} / {{ totalPages }} 页</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 空状态 -->
+                <div v-if="images.length === 0 && !loading" class="empty-state">
+                    <i class="fas fa-image empty-icon"></i>
+                    <h3 class="empty-text">暂无图片</h3>
+                    <p class="empty-hint">{{ isLoggedIn ? '上传你的第一张图片吧！' : '登录后上传图片' }}</p>
+                </div>
+                
+                <!-- 图片网格 -->
+                <div v-else class="gallery-grid">
+                    <div v-for="(img, index) in paginatedImages" 
+                         :key="img.path || index" 
+                         class="image-card"
+                         :style="{ 'animation-delay': (index % 10) * 50 + 'ms' }">
+                        <div class="image-wrapper">
+                            <img :src="img.path" 
+                                 :alt="img.name" 
+                                 loading="lazy" 
+                                 @error="handleImageError($event)">
+                            <div class="image-overlay">
+                                <button class="overlay-btn preview" @click.stop="previewImage(img)" title="预览">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="overlay-btn copy" @click.stop="copyLink(img.url, img, 'url')" title="复制链接">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                                <button v-if="isLoggedIn" class="overlay-btn delete" @click.stop="deleteImage(img)" title="删除">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="image-info">
+                            <div class="image-name">{{ img.name }}</div>
+                            <div class="image-meta">
+                                <div class="meta-item">
+                                    <i class="far fa-calendar"></i>
+                                    <span>{{ img.date }}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <i class="far fa-file"></i>
+                                    <span>{{ img.size }}</span>
+                                </div>
+                            </div>
+                            <div class="link-buttons">
+                                <button class="link-btn" 
+                                        :class="{ copied: img.copied === 'url' }" 
+                                        @click="copyLink(img.url, img, 'url')">
+                                    <i class="fas fa-link"></i> 直链
+                                </button>
+                                <button class="link-btn" 
+                                        :class="{ copied: img.copied === 'md' }" 
+                                        @click="copyLink(`![${img.name}](${img.url})`, img, 'md')">
+                                    <i class="fab fa-markdown"></i> MD
+                                </button>
+                                <button class="link-btn" 
+                                        :class="{ copied: img.copied === 'html' }" 
+                                        @click="copyLink(`<img src=&quot;${img.url}&quot; alt=&quot;${img.name}&quot;>`, img, 'html')">
+                                    <i class="fas fa-code"></i> HTML
+                                </button>
+                            </div>
+                            <div v-if="isLoggedIn" class="admin-actions">
+                                <button class="admin-btn btn-edit" @click="editImage(img)">
+                                    <i class="fas fa-edit"></i> 重命名
+                                </button>
+                                <button class="admin-btn btn-delete" @click="deleteImage(img)">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 分页控件 -->
+                <div v-if="totalPages > 1" class="pagination">
+                    <button class="page-btn" @click="currentPage--" :disabled="currentPage === 1">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    
+                    <button v-for="page in displayedPages" 
+                            :key="page" 
+                            class="page-btn" 
+                            :class="{ active: page === currentPage }"
+                            @click="currentPage = page">
+                        {{ page }}
+                    </button>
+                    
+                    <button class="page-btn" @click="currentPage++" :disabled="currentPage === totalPages">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    
+                    <span class="page-info">共 {{ totalPages }} 页</span>
+                </div>
+            </section>
+        </main>
+        
+        <!-- 移动端上传按钮 -->
+        <button v-if="isLoggedIn" class="mobile-upload-btn" @click="selectFile">
+            <i class="fas fa-plus"></i>
+        </button>
+        
+        <!-- 登录模态框 -->
+        <div class="modal-backdrop" :class="{ active: showLoginModal }" @click.self="closeLoginModal">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3 class="modal-title">管理员登录</h3>
+                    <button class="modal-close" @click="closeLoginModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="login">
+                        <div class="form-group">
+                            <label for="password" class="form-label">管理员密码</label>
+                            <input type="password" 
+                                   id="password" 
+                                   v-model="password" 
+                                   class="form-input" 
+                                   placeholder="请输入管理员密码" 
+                                   required
+                                   @keyup.esc="closeLoginModal">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" @click="closeLoginModal">取消</button>
+                            <button type="submit" class="btn-primary" :disabled="loginLoading">
+                                <span v-if="loginLoading" class="spinner"></span>
+                                <span v-else>登录</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 编辑模态框 -->
+        <div class="modal-backdrop" :class="{ active: showEditModal }" @click.self="closeEditModal">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3 class="modal-title">重命名图片</h3>
+                    <button class="modal-close" @click="closeEditModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="editName" class="form-label">新文件名（不含扩展名）</label>
+                        <input type="text" 
+                               id="editName" 
+                               v-model="editName" 
+                               class="form-input" 
+                               placeholder="输入新文件名"
+                               @keyup.esc="closeEditModal"
+                               @keyup.enter="confirmEdit">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" @click="closeEditModal">取消</button>
+                        <button type="button" class="btn-primary" @click="confirmEdit" :disabled="editLoading">
+                            <span v-if="editLoading" class="spinner"></span>
+                            <span v-else>确认修改</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 预览模态框 -->
+        <div class="modal-backdrop preview-modal" :class="{ active: showPreviewModal }" @click.self="closePreviewModal">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3 class="modal-title">图片预览</h3>
+                    <button class="modal-close" @click="closePreviewModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="preview-content">
+                        <img :src="previewUrl" alt="预览" class="preview-image">
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" @click="closePreviewModal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Toast提示 -->
+        <div class="toast" :class="[toastType, { show: toastVisible }]">
+            <i :class="toastIcon"></i>
+            <span>{{ toastMessage }}</span>
+        </div>
+    </div>
+    
+    <script>
+        const { createApp } = Vue;
+        
+        createApp({
+            data() {
+                return {
+                    isLoggedIn: false,
+                    isDragging: false,
+                    showLoginModal: false,
+                    showEditModal: false,
+                    showPreviewModal: false,
+                    password: '',
+                    loginLoading: false,
+                    uploadProgress: 0,
+                    images: [],
+                    editingImage: null,
+                    editName: '',
+                    editLoading: false,
+                    previewUrl: '',
+                    toastVisible: false,
+                    toastMessage: '',
+                    toastType: 'success',
+                    toastIcon: '',
+                    toastTimer: null,
+                    initError: '',
+                    loading: true,
+                    // 分页相关
+                    currentPage: 1,
+                    pageSize: 12
+                }
+            },
+            computed: {
+                // 总页数
+                totalPages() {
+                    return Math.ceil(this.images.length / this.pageSize);
+                },
+                // 当前页显示的图片
+                paginatedImages() {
+                    const start = (this.currentPage - 1) * this.pageSize;
+                    const end = start + this.pageSize;
+                    return this.images.slice(start, end);
+                },
+                // 显示的页码（简化显示，最多显示5个页码）
+                displayedPages() {
+                    const pages = [];
+                    const maxButtons = 5;
+                    let startPage = Math.max(1, this.currentPage - Math.floor(maxButtons / 2));
+                    let endPage = Math.min(this.totalPages, startPage + maxButtons - 1);
+                    
+                    if (endPage - startPage < maxButtons - 1) {
+                        startPage = Math.max(1, endPage - maxButtons + 1);
+                    }
+                    
+                    for (let i = startPage; i <= endPage; i++) {
+                        pages.push(i);
+                    }
+                    return pages;
+                }
+            },
+            watch: {
+                // 当图片列表变化时，如果当前页超出范围，重置到最后一页
+                images() {
+                    if (this.currentPage > this.totalPages && this.totalPages > 0) {
+                        this.currentPage = this.totalPages;
+                    }
+                }
+            },
+            async mounted() {
+                // 隐藏页面加载动画
+                setTimeout(() => {
+                    document.getElementById('pageLoader').classList.add('fade-out');
+                }, 800);
+                
+                try {
+                    await Promise.all([
+                        this.checkLogin().catch(() => {}),
+                        this.loadImages().catch(() => {})
+                    ]);
+                } catch (e) {
+                    console.error('初始化错误:', e);
+                    this.showToast('初始化失败，请刷新页面重试', 'error', 'fas fa-exclamation-circle');
+                } finally {
+                    this.loading = false;
+                }
+                
+                // ESC键关闭模态框
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        if (this.showLoginModal) this.closeLoginModal();
+                        if (this.showEditModal) this.closeEditModal();
+                        if (this.showPreviewModal) this.closePreviewModal();
+                    }
+                });
+            },
+            methods: {
+                showToast(message, type = 'success', icon = '') {
+                    if (this.toastTimer) clearTimeout(this.toastTimer);
+                    this.toastMessage = message;
+                    this.toastType = type;
+                    
+                    // 根据类型设置图标
+                    if (!icon) {
+                        if (type === 'success') {
+                            this.toastIcon = 'fas fa-check-circle';
+                        } else if (type === 'error') {
+                            this.toastIcon = 'fas fa-exclamation-circle';
+                        } else {
+                            this.toastIcon = 'fas fa-info-circle';
+                        }
+                    } else {
+                        this.toastIcon = icon;
+                    }
+                    
+                    this.toastVisible = true;
+                    this.toastTimer = setTimeout(() => { this.toastVisible = false; }, 3000);
+                },
+                
+                // 模态框控制
+                openLoginModal() {
+                    this.showLoginModal = true;
+                    this.password = '';
+                },
+                closeLoginModal() {
+                    this.showLoginModal = false;
+                },
+                openEditModal() {
+                    this.showEditModal = true;
+                },
+                closeEditModal() {
+                    this.showEditModal = false;
+                    this.editName = '';
+                    this.editingImage = null;
+                },
+                openPreviewModal() {
+                    this.showPreviewModal = true;
+                },
+                closePreviewModal() {
+                    this.showPreviewModal = false;
+                },
+                
+                selectFile() {
+                    if (this.$refs.fileInput) this.$refs.fileInput.click();
+                },
+                handleDrop(e) {
+                    this.isDragging = false;
+                    const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+                    this.uploadFiles(files);
+                },
+                handleFileSelect(e) {
+                    const files = Array.from(e.target.files || []);
+                    this.uploadFiles(files);
+                    if (e.target) e.target.value = '';
+                },
+                async uploadFiles(files) {
+                    if (!files || files.length === 0) return;
+                    for (let file of files) {
+                        if (file.size > 10 * 1024 * 1024) {
+                            this.showToast(`${file.name} 超过10MB限制`, 'error', 'fas fa-exclamation-triangle');
+                            continue;
+                        }
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        try {
+                            this.uploadProgress = 0;
+                            const xhr = new XMLHttpRequest();
+                            xhr.upload.addEventListener('progress', (e) => {
+                                if (e.lengthComputable) this.uploadProgress = (e.loaded / e.total) * 100;
+                            });
+                            const response = await new Promise((resolve, reject) => {
+                                xhr.open('POST', 'upload.php');
+                                xhr.onload = () => resolve(xhr.response);
+                                xhr.onerror = () => reject(new Error('网络错误'));
+                                xhr.send(formData);
+                            });
+                            let result;
+                            try {
+                                result = JSON.parse(response);
+                            } catch (e) {
+                                throw new Error('服务器返回格式错误');
+                            }
+                            if (result.success) {
+                                this.showToast(`${file.name} 上传成功`, 'success', 'fas fa-check-circle');
+                                this.loadImages();
+                                this.currentPage = 1;
+                            } else {
+                                this.showToast(result.message || '上传失败', 'error', 'fas fa-times-circle');
+                            }
+                        } catch (err) {
+                            this.showToast(err.message || '上传出错', 'error', 'fas fa-exclamation-circle');
+                        } finally {
+                            this.uploadProgress = 0;
+                        }
+                    }
+                },
+                async loadImages() {
+                    try {
+                        this.loading = true;
+                        const res = await fetch('action.php?action=list');
+                        if (!res.ok) throw new Error('网络错误');
+                        const data = await res.json();
+                        if (data.success && Array.isArray(data.data)) {
+                            this.images = data.data.map(img => ({ ...img, copied: null }));
+                        } else {
+                            this.images = [];
+                        }
+                    } catch (e) {
+                        console.error('加载图片失败:', e);
+                        this.images = [];
+                        this.showToast('加载图片失败', 'error', 'fas fa-exclamation-circle');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                async checkLogin() {
+                    try {
+                        const res = await fetch('action.php?action=check');
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        this.isLoggedIn = !!data.logged_in;
+                    } catch (e) {
+                        this.isLoggedIn = false;
+                    }
+                },
+                async login() {
+                    if (!this.password) return;
+                    this.loginLoading = true;
+                    try {
+                        const res = await fetch('action.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: `action=login&password=${encodeURIComponent(this.password)}`
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.isLoggedIn = true;
+                            this.closeLoginModal();
+                            this.showToast('登录成功', 'success', 'fas fa-check-circle');
+                        } else {
+                            this.showToast(data.message || '密码错误', 'error', 'fas fa-times-circle');
+                        }
+                    } catch (e) {
+                        this.showToast('登录失败，请检查网络', 'error', 'fas fa-exclamation-circle');
+                    } finally {
+                        this.loginLoading = false;
+                    }
+                },
+                logout() {
+                    fetch('action.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'action=logout'
+                    }).then(() => {
+                        this.isLoggedIn = false;
+                        this.showToast('已退出登录', 'success', 'fas fa-sign-out-alt');
+                    }).catch(() => {});
+                },
+                async deleteImage(img) {
+                    if (!confirm(`确定要删除 ${img.name} 吗？此操作不可撤销。`)) return;
+                    try {
+                        const res = await fetch('action.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: `action=delete&path=${encodeURIComponent(img.path)}`
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.showToast('删除成功', 'success', 'fas fa-trash-alt');
+                            this.loadImages();
+                        } else {
+                            this.showToast(data.message || '删除失败', 'error', 'fas fa-times-circle');
+                        }
+                    } catch (e) {
+                        this.showToast('删除出错', 'error', 'fas fa-exclamation-circle');
+                    }
+                },
+                editImage(img) {
+                    this.editingImage = img;
+                    this.editName = img.name.replace(/\.[^/.]+$/, '');
+                    this.openEditModal();
+                },
+                async confirmEdit() {
+                    if (!this.editName.trim()) {
+                        this.showToast('请输入文件名', 'error', 'fas fa-exclamation-circle');
+                        return;
+                    }
+                    this.editLoading = true;
+                    try {
+                        const res = await fetch('action.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: `action=rename&path=${encodeURIComponent(this.editingImage.path)}&name=${encodeURIComponent(this.editName)}`
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.showToast('重命名成功', 'success', 'fas fa-check-circle');
+                            this.closeEditModal();
+                            this.loadImages();
+                        } else {
+                            this.showToast(data.message || '重命名失败', 'error', 'fas fa-times-circle');
+                        }
+                    } catch (e) {
+                        this.showToast('操作出错', 'error', 'fas fa-exclamation-circle');
+                    } finally {
+                        this.editLoading = false;
+                    }
+                },
+                copyLink(url, img = null, type = null) {
+                    if (!url) return;
+                    navigator.clipboard.writeText(url).then(() => {
+                        if (img && type) {
+                            img.copied = type;
+                            setTimeout(() => { if (img) img.copied = null; }, 2000);
+                        }
+                        this.showToast('链接已复制到剪贴板', 'success', 'fas fa-copy');
+                    }).catch(() => {
+                        const input = document.createElement('input');
+                        input.value = url;
+                        document.body.appendChild(input);
+                        input.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(input);
+                        this.showToast('链接已复制到剪贴板', 'success', 'fas fa-copy');
+                    });
+                },
+                previewImage(img) {
+                    if (img && img.path) {
+                        this.previewUrl = img.path;
+                        this.openPreviewModal();
+                    }
+                },
+                handleImageError(e) {
+                    e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect width="100" height="100" fill="%23f1f5f9"/%3E%3Ctext x="50" y="50" font-family="Arial" font-size="14" fill="%2394a3b8" text-anchor="middle" dy=".3em"%3E图片加载失败%3C/text%3E%3C/svg%3E';
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
